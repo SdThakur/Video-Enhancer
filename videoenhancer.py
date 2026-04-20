@@ -386,6 +386,8 @@ if uploaded_file:
     add_creative_intro = False
     minimum_duration_target = 8
     narration_file = None
+    extend_short_videos = True
+    short_video_min_duration = 8
     if auto_quality_fixes:
         dynamic_motion = st.sidebar.toggle("Keep video dynamic", value=True)
         add_creative_intro = st.sidebar.toggle("Add creative intro edit", value=True)
@@ -394,6 +396,22 @@ if uploaded_file:
             "Optional narration audio (mp3/wav/m4a)",
             type=["mp3", "wav", "m4a"],
             key="narration_uploader"
+        )
+    else:
+        st.sidebar.subheader("Short Video Fix")
+        extend_short_videos = st.sidebar.toggle("Auto-extend short videos", value=True)
+        short_video_min_duration = st.sidebar.slider(
+            "Minimum export duration (seconds)",
+            5,
+            20,
+            8,
+            help="Useful for 3-4 second clips. The app duplicates end frames to reach this duration."
+        )
+
+    effective_min_duration = minimum_duration_target if auto_quality_fixes else (short_video_min_duration if extend_short_videos else duration)
+    if duration < effective_min_duration:
+        st.sidebar.warning(
+            f"Input is {duration:.2f}s. Output will be extended to {effective_min_duration:.0f}s."
         )
 
     effective_output_fps = max(output_fps, 30) if auto_quality_fixes else output_fps
@@ -423,7 +441,7 @@ if uploaded_file:
     )
 
     source_long_edge = max(size[0], size[1])
-    estimated_duration = max(duration, minimum_duration_target) if auto_quality_fixes else duration
+    estimated_duration = max(duration, effective_min_duration)
     size_4k_mb = estimate_output_size_mb(input_file_size_bytes, estimated_duration, source_long_edge, 3840, fps, effective_output_fps)
     size_8k_mb = estimate_output_size_mb(input_file_size_bytes, estimated_duration, source_long_edge, 7680, fps, effective_output_fps)
     size_12k_mb = estimate_output_size_mb(input_file_size_bytes, estimated_duration, source_long_edge, 11520, fps, effective_output_fps)
@@ -696,8 +714,8 @@ if uploaded_file:
             },
             {
                 "label": "Minimum Length",
-                "ok": max(duration, minimum_duration_target if auto_quality_fixes else duration) >= 8,
-                "detail": f"Input: {duration:.2f}s, Target minimum: {minimum_duration_target if auto_quality_fixes else int(duration)}s"
+                "ok": max(duration, effective_min_duration) >= 8,
+                "detail": f"Input: {duration:.2f}s, Target minimum: {int(effective_min_duration)}s"
             }
         ]
         quality_pass_count = sum(1 for item in quality_items if item["ok"])
@@ -891,7 +909,7 @@ if uploaded_file:
                     )
 
                     src_w_clip, src_h_clip = processed_clip.size
-                    required_pad_seconds = max(0.0, minimum_duration_target - duration) if auto_quality_fixes else 0.0
+                    required_pad_seconds = max(0.0, effective_min_duration - duration)
                     needs_scale = (src_w_clip, src_h_clip) != (target_w, target_h)
                     needs_pad = required_pad_seconds > 0.01
 
@@ -900,14 +918,14 @@ if uploaded_file:
                             output_path = output_file.name
 
                         if needs_scale and needs_pad:
-                            progress_bar.progress(70, text=f"Upscaling and extending duration to {minimum_duration_target}s...")
-                            status_box.write(f"Upscaling and extending duration to {minimum_duration_target}s...")
+                            progress_bar.progress(70, text=f"Upscaling and extending duration to {int(effective_min_duration)}s...")
+                            status_box.write(f"Upscaling and extending duration to {int(effective_min_duration)}s...")
                         elif needs_scale:
                             progress_bar.progress(70, text=f"Upscaling to {target_w}x{target_h} with FFmpeg...")
                             status_box.write(f"Upscaling to {target_w}x{target_h} with FFmpeg...")
                         else:
-                            progress_bar.progress(70, text=f"Extending duration to {minimum_duration_target}s...")
-                            status_box.write(f"Extending duration to {minimum_duration_target}s...")
+                            progress_bar.progress(70, text=f"Extending duration to {int(effective_min_duration)}s...")
+                            status_box.write(f"Extending duration to {int(effective_min_duration)}s...")
 
                         vf_filters = []
                         if needs_scale:
