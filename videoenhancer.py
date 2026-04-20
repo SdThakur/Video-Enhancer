@@ -280,18 +280,28 @@ if uploaded_file:
     
     # Display video info
     video_bytes = uploaded_file.getvalue()
+    input_file_size_bytes = len(video_bytes)
+
+    if input_file_size_bytes > 700 * 1024 * 1024:
+        st.warning("Large upload detected. Cloud instances may fail on very large files. Consider using 4K, 30 FPS, and Fast/Maximum Speed mode.")
     
-    # Save uploaded file temporarily
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp_file:
+    # Save uploaded file temporarily with original extension for better decoder compatibility.
+    upload_suffix = Path(uploaded_file.name).suffix or ".mp4"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=upload_suffix) as tmp_file:
         tmp_file.write(video_bytes)
         temp_video_path = tmp_file.name
     
-    # Load video info
-    video_clip = VideoFileClip(temp_video_path)
-    duration = video_clip.duration
-    fps = video_clip.fps
-    size = video_clip.size
-    input_file_size_bytes = len(video_bytes)
+    # Load video info safely so decoder failures do not crash the full app.
+    try:
+        video_clip = VideoFileClip(temp_video_path)
+        duration = video_clip.duration
+        fps = video_clip.fps
+        size = video_clip.size
+    except Exception as e:
+        st.error("Could not open this video on the current server runtime.")
+        st.info("Common fixes: convert to MP4 (H.264 + AAC), reduce file size, or lower source resolution/FPS before upload.")
+        st.caption(f"Decoder details: {type(e).__name__}: {str(e)[:220]}")
+        st.stop()
     
     st.sidebar.info(f"📊 Video Info:\n- Duration: {duration:.2f}s\n- FPS: {fps}\n- Resolution: {size[0]}x{size[1]}")
 
@@ -992,7 +1002,10 @@ if uploaded_file:
                     
                 except Exception as e:
                     st.error(f"❌ Error processing video: {str(e)}")
-                    st.info("Make sure you have all required dependencies installed:\npip install streamlit moviepy opencv-python pillow")
+                    st.info(
+                        "If this happens on cloud after some time, it is often a memory/timeout limit. "
+                        "Try 4K, 30 FPS, Fast/Maximum Speed, shorter clips, or pre-convert to MP4 (H.264 + AAC)."
+                    )
     
     # Cleanup
     video_clip.close()
