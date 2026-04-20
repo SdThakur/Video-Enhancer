@@ -269,7 +269,11 @@ def estimate_output_size_mb(input_bytes, duration_seconds, source_long_edge, tar
     return total_megabits / 8.0
 
 # File upload
-uploaded_file = st.sidebar.file_uploader("Upload MP4 Video", type=["mp4"])
+uploaded_file = st.sidebar.file_uploader(
+    "Upload Video",
+    type=["mp4", "mov", "m4v", "webm", "avi", "mkv", "3gp"]
+)
+st.sidebar.caption("Tip: Phone videos are often .mov/.m4v/.3gp. If a file still fails, convert it to MP4 (H.264).")
 
 if uploaded_file:
     st.session_state.video_file = uploaded_file

@@ -125,7 +125,10 @@ def render_result_card(label, ok, detail):
         st.warning(f"{label}: NEEDS IMPROVEMENT\n\n{detail}")
 
 
-uploaded = st.file_uploader("Upload video (MP4)", type=["mp4"])
+uploaded = st.file_uploader(
+    "Upload video",
+    type=["mp4", "mov", "m4v", "webm", "avi", "mkv", "3gp"]
+)
 
 if uploaded:
     video_path = save_uploaded_file(uploaded)
