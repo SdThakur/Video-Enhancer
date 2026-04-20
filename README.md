@@ -58,6 +58,15 @@ The tools are designed for local processing on your machine.
 - Python 3.9+
 - FFmpeg available (installed system-wide or via `imageio-ffmpeg` package)
 
+## Streamlit Cloud Deployment Note
+
+If you deploy on Streamlit Community Cloud, keep these files in the repo root:
+
+- `runtime.txt` set to `python-3.12.0`
+- `requirements.txt` using `opencv-python-headless` instead of `opencv-python`
+
+This avoids the OpenCV import failure that can happen when the cloud build lands on Python 3.14.
+
 ## Installation
 
 ```bash
